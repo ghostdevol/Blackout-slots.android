@@ -2,57 +2,45 @@ name: Android Build (Debug + Release)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-
     steps:
-      # 1. Checkout repository
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2. Set up JDK 17
       - name: Setup JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      # 3. Install Android command line tools + SDK packages
-      - name: Install Android SDK
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip wget
-          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT/cmdline-tools
-          yes | $ANDROID_SDK_ROOT/cmdline-tools/tools/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-33" "build-tools;33.0.2" "tools"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      # 4. Build Debug APK
+      - name: Accept Licenses
+        run: yes | sdkmanager --licenses
+
+      - name: Install SDK Packages
+        run: sdkmanager "platforms;android-33" "build-tools;33.0.2"
+
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
-      # 5. Build Release APK (unsigned if no keystore yet)
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      # 6. Upload Debug APK artifact
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: blackout-slots-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      # 7. Upload Release APK artifact
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
